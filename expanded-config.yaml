@@ -1,0 +1,50 @@
+resources:
+- name: DEVICE_NAME
+  properties:
+    canIpForward: true
+    disks:
+    - autoDelete: true
+      boot: true
+      deviceName: DEVICE_NAME_boot_disk_0
+      initializeParams:
+        diskSizeGb: 60
+        diskType: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/zones/REPLACE_ZONE/diskTypes/pd-ssd
+        sourceImage: https://www.googleapis.com/compute/v1/projects/paloaltonetworksgcp-public/global/images/SRC_IMAGE
+      type: PERSISTENT
+    machineType: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/zones/REPLACE_ZONE/machineTypes/e2-standard-4
+    metadata:
+      items:
+      - key: dhcp-accept-server-domain
+        value: 'yes'
+      - key: dhcp-accept-server-hostname
+        value: 'yes'
+      - key: ssh-keys
+        value: admin:ssh-rsa REPLACE_SSH
+      - key: serial-port-enable
+        value: 'true'
+    networkInterfaces:
+    - accessConfigs:
+      - name: MGMT NAT
+        type: ONE_TO_ONE_NAT
+      network: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/global/networks/mgmt
+      subnetwork: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/regions/REPLACE_REGION/subnetworks/mgmt
+    - accessConfigs:
+      - name: EXTERNAL NAT
+        type: ONE_TO_ONE_NAT
+      network: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/global/networks/external
+      subnetwork: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/regions/REPLACE_REGION/subnetworks/external
+    - accessConfigs: []
+      network: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/global/networks/internal
+      subnetwork: https://www.googleapis.com/compute/v1/projects/REPLACE_PROJECT/regions/REPLACE_REGION/subnetworks/internal
+    serviceAccounts:
+    - email: default
+      scopes:
+      - https://www.googleapis.com/auth/compute.readonly
+      - https://www.googleapis.com/auth/cloud.useraccounts.readonly
+      - https://www.googleapis.com/auth/devstorage.read_only
+      - https://www.googleapis.com/auth/logging.write
+      - https://www.googleapis.com/auth/monitoring.write
+    tags:
+      items: []
+    zone: REPLACE_ZONE
+  type: compute.v1.instance

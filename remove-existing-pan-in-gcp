@@ -1,0 +1,88 @@
+#!/bin/bash
+# Created by Mike Wissa
+# Ask the user for the deployment name
+read -p "Please enter the name of the deployment you wish to delete: " deployment_name
+
+
+# Function to check if the deployment exists
+deployment_exists() {
+    local deployment=$1
+    gcloud deployment-manager deployments describe $deployment &> /dev/null
+    return $?
+}
+
+
+# Check if the deployment exists
+if deployment_exists $deployment_name; then
+    # Confirm the deletion with the user
+    read -p "Are you sure you want to delete the deployment named '$deployment_name'? (yes/no): " confirmation
+
+    # Check the confirmation
+    if [[ $confirmation == "yes" || $confirmation == "y" ]]; then
+        # Run the gcloud command to delete the deployment
+        gcloud deployment-manager deployments delete $deployment_name --quiet
+
+        # Check if the gcloud command was successful
+        if [ $? -eq 0 ]; then
+            echo "Deployment '$deployment_name' deleted successfully!"
+        else
+            echo "Failed to delete deployment. Please try again later."
+        fi
+    else
+        echo "Operation aborted. Deployment was not deleted."
+    fi
+else
+    # Deployment does not exist
+    echo "The deployment named '$deployment_name' does not exist."
+    read -p "Do you want to continue or exit? (continue/exit): " action
+
+    if [[ $action == "exit" || $action == "e" ]]; then
+        echo "Exiting..."
+        exit 0
+    else
+        echo "You can re-enter the deployment name or perform other actions."
+    fi
+fi
+
+echo "**********************"
+echo "now deleting networks"
+echo "**********************"
+
+echo "#### Deleting Firewall Rules #####"
+# Delete firewall rules for each network
+for network in "${networks[@]}"; do
+  # List all firewall rules for the current network and delete them
+  echo "Deleting firewall rules for ${network}"
+  for rule in $(gcloud compute firewall-rules list --filter="network:${network}" --format="value(name)"); do
+    gcloud compute firewall-rules delete "${rule}" --quiet 2> $error_output &
+    pid=$!
+    show_spinner $pid
+    wait $pid
+    check_error $?
+  done
+done
+echo "#### Deleting subnetworks #####"
+for network in "${networks[@]}"; do
+  # List all subnets for the current network and delete them
+  for subnet in $(gcloud compute networks subnets list --filter="network:${network}" --format="value(name)"); do
+    echo "deleting subnet ${subnet}"
+    gcloud compute networks subnets delete "${subnet}" --quiet 2> $error_output &
+    pid=$!
+    show_spinner $pid
+    wait $pid
+    check_error $?
+  done
+done
+
+echo "### Deleting Networks ###"
+for network in "${networks[@]}"; do
+  echo "Deleting network $network"
+  gcloud compute networks delete "${network}" --quiet 2> $error_output &
+  pid=$!
+  show_spinner $pid
+  wait $pid
+  check_error $?
+done
+echo "******************"
+echo "(((((THE END))))))"
+echo "******************"
